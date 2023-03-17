@@ -1,0 +1,69 @@
+﻿<CascadingValue Value=this.Register>
+    @if (_firstRender)
+    {
+        @*Renders the child content on the first render event*@
+        @ChildContent
+    }
+    else
+    {
+        @*Builds out the top tab*@
+        <ul class="nav nav-tabs">
+            @foreach (var tab in _tabs)
+            {
+                <li class="@this.LiCss">
+                    <a class="@this.TabCss(tab)" aria-current="page" @onclick="() => this.ChangeToTab(tab)">@tab.Label</a>
+                </li>
+            }
+        </ul>
+        @*Renders the active Tab's content*@
+        <div class="@this.Class">
+            @_activeTab?.ChildContent
+        </div>
+    }
+
+</CascadingValue>
+
+@code {
+    [Parameter] public string Class { get; set; } = string.Empty;
+    [Parameter] public string UlCss { get; set; } = "nav nav-tabs";
+    [Parameter] public string LiCss { get; set; } = "nav-item";
+    [Parameter] public string ACss { get; set; } = "nav-link";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private List<BlazrTab> _tabs = new();
+    private BlazrTab? _activeTab;
+    private bool _firstRender = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.Yield();
+        _firstRender = false;
+    }
+
+    // Method to get the Css for a Tab
+    private string TabCss(BlazrTab tab)
+        => tab == _activeTab ? $"{this.ACss} active" : this.ACss;
+
+    // Cascaded method to register a Tab
+    private void Register(BlazrTab tab)
+    {
+        if (!_tabs.Any(item => item == tab))
+        {
+            _tabs.Add(tab);
+            if (_tabs.Count() == 1)
+                _activeTab = tab;
+        }
+    }
+
+    // Internal method for setting the current Tab
+    private void ChangeToTab(BlazrTab tab)
+        => _activeTab = tab;
+
+    // External mwthod to set the current tab using the Id
+    public void SetTab(string id)
+    {
+        var tab = _tabs.FirstOrDefault(item => item.Id.Equals(id));
+        if (tab is not null)
+            _activeTab = tab;
+    }
+}

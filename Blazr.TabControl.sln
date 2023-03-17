@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33403.182
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blazr.TabControl", "Blazr.TabControl\Blazr.TabControl.csproj", "{38C522A2-B018-4F54-9C93-6CFD79005231}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{38C522A2-B018-4F54-9C93-6CFD79005231}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{38C522A2-B018-4F54-9C93-6CFD79005231}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{38C522A2-B018-4F54-9C93-6CFD79005231}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{38C522A2-B018-4F54-9C93-6CFD79005231}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A07A936F-1A42-4A7F-BD43-03123A669FD9}
+	EndGlobalSection
+EndGlobal
