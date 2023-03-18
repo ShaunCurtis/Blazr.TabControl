@@ -1,43 +1,48 @@
-This repo demonstrates how to use the Blazor Component Registration Pattern.  It demonstrates how to use the pattern in building one of the standard BootStrap Tab controls.
+This repo demonstrates how to use the Blazor Component Registration Pattern.  It uses the pattern in building a Tab component based on one of the standard BootStrap Tab controls.
 
-Let's look at what we want to achieve.  We have a `BlazrTabControl` component with serveral `BlazrTab` coponents, each with their own content.
+Let's look at what we want to achieve. A `BlazrTabControl` component with serveral `BlazrTab` components, each with their own content.
 
-```csharp
-<BlazrTabControl Class="p-2 bg-light">
+```html
+<BlazrTabControl>
 
-    <BlazrTab Label="First">
-        <div class="alert alert-primary m-4">
-            First
-        </div>
+    <BlazrTab>
+        ... content
     </BlazrTab>
 
-    <BlazrTab Label="Second">
-        <div class="alert alert-success m-4">
-            Second
-        </div>
+    <BlazrTab>
+        ... content
     </BlazrTab>
 
-    <BlazrTab Label="Third">
-        <div class="alert alert-danger m-4">
-            Third
-        </div>
+    <BlazrTab>
+        ... content
     </BlazrTab>
 
 </BlazrTabControl>
 ``` 
 
-The problem we face is that although `BlazrTab` is a child component of `BlazrTabControl`, `BlazrTabControl` doesn't know intrinsically know about the existence of the `BlazrTab` instances when the are created as part of the render process.  All the component instances are created and managed by the Renderer, and are structured into a render tree that the individual component instance have no reference to.
+The problem we need to solve is that although `BlazrTab` is a child component of `BlazrTabControl`, `BlazrTabControl` has no knowledge of the `BlazrTab` instances created as part of the render process.  All component instances are created and managed by the Renderer, and are structured into a render tree.  Individual component instances have no access to that render tree.
 
-What we can do is cascade a reference from `BlazrTabControl` that the `BlazrTab` instances can capture and provide a registration mechanism.
+We need to create a registration process, that provides that information to `BlazrTabControl`.
 
+As passing references to component instances around in not good practice we need a data object to hold the `BlazrTab` state:
 
-Here's the code for the `BlazrTab`.
+`TabData` is a simple record to hold the Tab data.
 
-1. It's a class, not a Razor component.  There's no content that we want to render. `BlazrTabControl` will render the `ChildContent` of the selected tab,  
-2. The reference to `BlazrTabControl` is not the component itself but a callback method to register the component.  Cascading component references is not good practice.
-3. Thgere's a Label for the Tab and a Id reference for external reference.
+```csharp
+public record TabData(string Id, string Label, RenderFragment? Content);
+```
+
+We can cascade a reference from `BlazrTabControl` that `BlazrTab` instances capture and use to register.
+
+### BlazrTab
+
+Here's the code for `BlazrTab`.  It's simple.
+
+1. It's a class, not a Razor component.  There's no content to render. `BlazrTabControl` will render the `ChildContent` of the selected tab.  
+2. `register` is an `Action` callback to register the component data.
+3. There's a Label for the Tab and a Id reference for external reference.
 4. `ChildContent` holds the `RenderFragment` reference to the content in the parent.
-5. The component registers itself by calling the cascaded Register callback.
+5. When the component initialises it registers a `TabData` object containing the relevant data `BlazrTabControl` needs to manage and render the component content.
 
 
 ```csharp
@@ -54,15 +59,9 @@ public class BlazrTab : ComponentBase
 }
 ```
 
-`TabData` is a simple record to hold the Tab data.  I use this instead of passing around component references. 
-
-```csharp
-public record TabData(string Id, string Label, RenderFragment? Content);
-```
-
 ### BlazrTabControl
 
-The html that the component will output should look like this:
+The Tab html that the component will output should look like this:
 
 ```html
 <ul class="nav nav-tabs">
@@ -81,7 +80,7 @@ The html that the component will output should look like this:
 </ul>
 ```
 
-We have a set of parameters for setting the Css and other data:
+1. A set of parameters for setting the Css and other data:
 
 ```csharp
     [Parameter] public string Class { get; set; } = string.Empty;
@@ -92,7 +91,7 @@ We have a set of parameters for setting the Css and other data:
     [Parameter] public RenderFragment? ChildContent { get; set; }
 ```
 
-Local variables to hold the state including the tab collection:
+2. Local state variables including the `TabData` collection:
 
 ```csharp
     private List<TabData> _tabs = new();
@@ -100,28 +99,25 @@ Local variables to hold the state including the tab collection:
     private bool _firstRender = true;
 ```
 
-The Register method which checks to see if the component is already registered and sets the active tab to the first entry.
+3. The Register method. It checks to see if the component is already registered and sets the active tab to the first entry.
 
 ```csharp
 private void Register(TabData tab)
 {
     if (!_tabs.Any(item => item == tab))
-    {
         _tabs.Add(tab);
-        if (_tabs.Count() == 1)
-            _activeTab = tab;
-    }
+
+    if (_tabs.Count() == 1)
+        _activeTab = tab;
 }
 ```
 
-Two methods to set the active tab.  The external method is for situations where you want to switch between tabs with a tab's content.
+4. Two methods to set the active tab.  The external method is for where you want to switch between tabs with a tab's content.  The final code section shows how to do this.
 
 ```csharp
-// Internal method for setting the current Tab
 private void ChangeToTab(TabData tab)
     => _activeTab = tab;
 
-// External mwthod to set the current tab using the Id
 public void SetTab(string id)
 {
     var tab = _tabs.FirstOrDefault(item => item.Id.Equals(id));
@@ -130,14 +126,14 @@ public void SetTab(string id)
 }
 ``` 
 
-A method to set the tab's Css.
+5. A method to set the tab's Css.
 
 ```csharp
 private string TabCss(TabData tab)
     => tab == _activeTab ? this.ACssActive : this.ACss;
 ``` 
 
-And finally the `OnInitializedAsync`.  The method yields the task and then sets `_firstRender` to false.  What this means is on the first render of the component (on the yield) {firstRender} is true, whilw on subsequent renders (when OnInitializedAsync and OnParametersSetAsync completes and thereafter) `_firstRender` is false. 
+6. `OnInitializedAsync`.  The method yields the task and then sets `_firstRender` to false.  On first render (on the yield) `_firstRender` is true, while on subsequent renders (when OnInitializedAsync and OnParametersSetAsync completes and thereafter) `_firstRender` is false. 
 
 ```csharp
 protected override async Task OnInitializedAsync()
@@ -147,17 +143,17 @@ protected override async Task OnInitializedAsync()
 }
 ```
 
-Now to the markup.
+The Razor markup.
 
 Cascade the Register method.  
 
 When the component first renders (on the yield in `OnInitializedAsync`):
 
-`_firstRender` is true, so the component renders it's child content.  The `BlazrTab` component instances are all rendered and register a `TabData` object.  I'll cover why we use a `TabData` object rather than just registering the component itself shortly.
+- `_firstRender` is true, so the component renders it's child content.  The `BlazrTab` component instances are all rendered and register a `TabData` object.  I'll cover why we use a `TabData` object rather than just registering the component itself shortly.
 
 On subsequent renders:
 
-`_firstRender` is false, so the tabs are rendered and the render fragment that holds the active tab's contents is rendered. 
+- `_firstRender` is false, so the tabs are rendered and the render fragment that holds the active tab's contents is rendered. 
 
 ```html
 <CascadingValue Value=this.Register>
@@ -184,3 +180,53 @@ On subsequent renders:
         </div>
     }
 ```
+
+### Demo Page
+
+It's self explanatory.
+
+I've added the inter-tab navigation to show how that's done using the Tab `Id`.
+
+```html
+@page "/"
+
+<PageTitle>Index</PageTitle>
+
+<BlazrTabControl Class="p-2 bg-light" @ref=_blazrTabControl>
+
+    <BlazrTab Label="First" Id="1">
+        <div class="alert alert-primary m-4">
+            First
+        </div>
+    </BlazrTab>
+
+    <BlazrTab Label="Second" Id="2">
+        <div class="alert alert-success m-4">
+            Second
+        </div>
+    </BlazrTab>
+
+    <BlazrTab Label="Third" Id="3">
+        <div class="alert alert-danger m-4">
+            Third
+        </div>
+        <button class="btn btn-primary" @onclick="@(() => this.ChangeTab("1"))">Back to First</button>
+    </BlazrTab>
+
+</BlazrTabControl>
+```
+```html
+@code {
+    private BlazrTabControl? _blazrTabControl;
+
+    private void ChangeTab(string id)
+        => _blazrTabControl?.SetTab(id);
+}
+```
+
+## Why shouldn't you cascade a Component
+
+1. It's not your object.  It's owned and managed by the Renderer.
+2. It exposes a lot of functionality that isn't applicable outside the context of the render, and calling say `SetParamnetersAsync` can be disasterous.
+3. Referenced objects such as services may not be in the state you expect them if you hold a reference to the component, but the Renderer has finished with it.
+4. If the component implements `I{Async}Disposable` then it will be disposed when the Renderer is finished with it (but you may not be).  
