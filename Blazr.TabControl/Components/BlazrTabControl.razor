@@ -70,7 +70,7 @@
     // External mwthod to set the current tab using the Id
     public void SetTab(string id)
     {
-        var tab = _tabs.FirstOrDefault(item => item.Id.Equals(id));
+        var tab = _tabs.FirstOrDefault(item => item.Id.Equals(id, StringComparison.CurrentCultureIgnoreCase));
         if (tab is not null)
             _activeTab = tab;
     }
