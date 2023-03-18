@@ -1,4 +1,5 @@
 ﻿<CascadingValue Value=this.Register>
+
     @if (_firstRender)
     {
         @*Renders the child content on the first render event*@
@@ -17,7 +18,7 @@
         </ul>
         @*Renders the active Tab's content*@
         <div class="@this.Class">
-            @_activeTab?.ChildContent
+            @_activeTab?.Content
         </div>
     }
 
@@ -28,10 +29,11 @@
     [Parameter] public string UlCss { get; set; } = "nav nav-tabs";
     [Parameter] public string LiCss { get; set; } = "nav-item";
     [Parameter] public string ACss { get; set; } = "nav-link";
+    [Parameter] public string ACssActive { get; set; } = "nav-link bg-light active";
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    private List<BlazrTab> _tabs = new();
-    private BlazrTab? _activeTab;
+    private List<TabData> _tabs = new();
+    private TabData? _activeTab;
     private bool _firstRender = true;
 
     protected override async Task OnInitializedAsync()
@@ -41,11 +43,11 @@
     }
 
     // Method to get the Css for a Tab
-    private string TabCss(BlazrTab tab)
-        => tab == _activeTab ? $"{this.ACss} active" : this.ACss;
+    private string TabCss(TabData tab)
+        => tab == _activeTab ? this.ACssActive : this.ACss;
 
     // Cascaded method to register a Tab
-    private void Register(BlazrTab tab)
+    private void Register(TabData tab)
     {
         if (!_tabs.Any(item => item == tab))
         {
@@ -56,7 +58,7 @@
     }
 
     // Internal method for setting the current Tab
-    private void ChangeToTab(BlazrTab tab)
+    private void ChangeToTab(TabData tab)
         => _activeTab = tab;
 
     // External mwthod to set the current tab using the Id
