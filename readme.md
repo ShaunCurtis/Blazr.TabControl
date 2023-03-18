@@ -1,6 +1,6 @@
-This repo demonstrates how to use the Blazor Component Registration Pattern.  It uses the pattern in building a Tab component based on one of the standard BootStrap Tab controls.
+This repo provides a demonstration of how to use the Blazor Component Registration Pattern.  The pattern is used to build a Tab component based on one of the standard BootStrap tab controls.
 
-Let's look at what we want to achieve. A `BlazrTabControl` component with serveral `BlazrTab` components, each with their own content.
+This is what we want to achieve. A `BlazrTabControl` component with serveral `BlazrTab` components, each with their own content.
 
 ```html
 <BlazrTabControl>
@@ -22,27 +22,25 @@ Let's look at what we want to achieve. A `BlazrTabControl` component with server
 
 The problem we need to solve is that although `BlazrTab` is a child component of `BlazrTabControl`, `BlazrTabControl` has no knowledge of the `BlazrTab` instances created as part of the render process.  All component instances are created and managed by the Renderer, and are structured into a render tree.  Individual component instances have no access to that render tree.
 
-We need to create a registration process, that provides that information to `BlazrTabControl`.
+We need a registration process for the individual `BlazorTab` instances to register with `BlazrTabControl`, and a data object to pass the `BlazrTab` state.
 
-As passing references to component instances around in not good practice we need a data object to hold the `BlazrTab` state:
-
-`TabData` is a simple record to hold the Tab data.
+`TabData` is a simple record.
 
 ```csharp
 public record TabData(string Id, string Label, RenderFragment? Content);
 ```
 
-We can cascade a reference from `BlazrTabControl` that `BlazrTab` instances capture and use to register.
+We can cascade a callback from `BlazrTabControl` that `BlazrTab` instances capture and use to register.
 
 ### BlazrTab
 
 Here's the code for `BlazrTab`.  It's simple.
 
-1. It's a class, not a Razor component.  There's no content to render. `BlazrTabControl` will render the `ChildContent` of the selected tab.  
-2. `register` is an `Action` callback to register the component data.
-3. There's a Label for the Tab and a Id reference for external reference.
+1. It's a class, not a Razor component: there's no content to render. `BlazrTabControl` renders the `ChildContent` of the currently selected tab.  
+2. `Register` is an `Action` callback to register the component data.
+3. There's a `Label` for the Tab and a `Id` reference for external reference.
 4. `ChildContent` holds the `RenderFragment` reference to the content in the parent.
-5. When the component initialises it registers a `TabData` object containing the relevant data `BlazrTabControl` needs to manage and render the component content.
+5. When the component initialises it registers a `TabData` object with `BlazrTabControl`.
 
 
 ```csharp
@@ -223,10 +221,13 @@ I've added the inter-tab navigation to show how that's done using the Tab `Id`.
         => _blazrTabControl?.SetTab(id);
 }
 ```
+## Summary
+
+It's important to understand that the `BlazrTab` components are rendered on the first render of the `BlazorTabControl` and then discarded.  The Renderer will de-reference them and leave the GC to remove them.  The `BlazrTab`'s content is a `RenderFragment` owned by `BlazorTabControl`.  This gets passed back in the `TabData` object.  `BlazorTabControl` adds the active tab's `RenderFragment` to it's rendered content.  
 
 ## Why shouldn't you cascade a Component
 
-1. It's not your object.  It's owned and managed by the Renderer.
+1. It's not your object: it's owned and managed by the Renderer.
 2. It exposes a lot of functionality that isn't applicable outside the context of the render, and calling say `SetParamnetersAsync` can be disasterous.
 3. Referenced objects such as services may not be in the state you expect them if you hold a reference to the component, but the Renderer has finished with it.
 4. If the component implements `I{Async}Disposable` then it will be disposed when the Renderer is finished with it (but you may not be).  
